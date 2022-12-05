@@ -7,18 +7,16 @@ FPS = 100
 RED = 0xFF0000
 GREY = 0x7D7D7D
 WHITE = 0xFFFFFF
+GREEN = 0x7FFF00
 WIDTH = 800
 HEIGHT = 600
 
-class Roc:
-
-    def __init__(self, screen, x=350, y=300, h = 250, w = 100):
+class Rocket:
+    def __init__(self, screen):
         self.screen = screen
-        self.x = x
-        self.y = y
-        self.h = h
-        self.w = w
-        self.vx = 0
+        self.y = 300
+        self.h = 250
+        self.w = 100
         self.vy = 0
         self.m = 30
         self.mt = 35
@@ -28,20 +26,29 @@ class Roc:
         self.L = 'OFF'
         self.color = GREY
 
-
     def move(self):
          self.vy -= - self.g * dt/10000 - self.N/(1-self.N/50)*0.01 + self.A * (self.vy)
          self.y += self.vy * dt/30
+         if ((self.y + self.h) > 551):
+            self.vy = 0
+            self.y = 300
 
     def imp(self):
         self.N = 0
         
     def draw(self):
-        pygame.draw.rect(self.screen, self.color, pygame.Rect(self.x, self.y, self.w, self.h))
-        pygame.draw.lines(self.screen, self.color, True, [[self.x, self.y], [self.x + self.w, self.y], [self.x + 0.5 * self.w, self.y - 30]], 30)
+        pygame.draw.rect(self.screen, self.color, pygame.Rect(350, self.y, self.w, self.h))
+        pygame.draw.lines(self.screen, self.color, True, [[350, self.y], [350 + self.w, self.y], [350 + 0.5 * self.w, self.y - 30]], 30)
 
-class Fu:
+    def Air_force(self):
+        rocket.A = 0.01
+        rocket.L = 'ON'
 
+    def no_Air_force(self):
+        rocket.A = 0
+        rocket.L = 'OFF'
+
+class Fuel:
     def __init__(self, screen, x,  y):
         self.screen = screen
         self.x = x
@@ -53,12 +60,12 @@ class Fu:
         self.count = 1089
         self.color = RED
      
-    def move(self):
-        self.vy =  roc.vy + self.g * dt/10000 * (1 + (self.y - roc.y -150)/(2*self.r))
+    def move(self, object):
+        self.vy =  object.vy + self.g * dt/10000 * (1 + (self.y - object.y -150)/(2*self.r))
         self.y += self.vy * dt/30
         self.x += self.vx * dt
 
-        if (self.y-self.r)> (roc.y + roc.h):
+        if (self.y-self.r)> (object.y + object.h):
             self.vy = 1
             self.y += self.vy * dt + self.g*dt*dt/2000
             self.vx =  randint(-1,1)
@@ -67,8 +74,8 @@ class Fu:
         pygame.draw.circle(self.screen, self.color, (self.x, self.y), self.r)
 
     def imp(self):
-        roc.N = 100
-        roc.mt -= 1
+        rocket.N = 100
+        rocket.mt -= 1
 
     def hittest(self, obj):
         dy = self.y
@@ -79,134 +86,125 @@ class Fu:
 
 def start():
     u = pygame.font.SysFont("comicsansms", 20)
-    value = u.render("Start: off" , True, RED)
+    value = u.render("Start: off Start - 1" , True, RED)
     screen.blit(value, [260, 10])
 
-def Air_force():
-    roc.A = 0.01
-    roc.L = 'ON'
+def draw_text(text, parametr, position):
+    a = pygame.font.SysFont("comicsansms", 18)
+    value = a.render(str(text) + str(parametr), True, RED)
+    screen.blit(value, [10, position])
 
-def no_Air_force():
-    roc.A = 0
-    roc.L = 'OFF'
+def parametres(object):
+    draw_text(text = 'Скорость ракеты:' , parametr = round(-object.vy), position = 10)
+    draw_text(text = 'Координата ракеты: ', parametr = round(-object.y), position = 30)
+    draw_text(text = '(2+ 3-) Масса корпуса ракеты: ', parametr = round(object.m), position = 50)
+    draw_text(text = '(4+ 5-) Масса топлива ракеты: ', parametr = round(object.mt), position = 70)
+    draw_text(text = '(6+ 7-) Сила сопротивления: ', parametr = object.L , position = 90)
+    draw_text(text = '(8+ 9-) Повторных пусков:  '  , parametr = repeat, position = 110)
 
-def parametres():
-    m = pygame.font.SysFont("comicsansms", 18)
-    value = m.render("Скорость ракеты: " + str(round(roc.vy)), True, RED)
-    screen.blit(value, [10, 10])
-    r = pygame.font.SysFont("comicsansms", 18)
-    value = r.render("Координата ракеты: " + str(round(roc.y)), True, RED)
-    screen.blit(value, [10, 30])
-    p = pygame.font.SysFont("comicsansms", 18)
-    value = p.render("Масса корпуса ракеты: " + str(round(roc.m)), True, RED)
-    screen.blit(value, [10, 50])
-    x = pygame.font.SysFont("comicsansms", 18)
-    value = x.render("Масса топлива ракеты: " + str(round(roc.mt)), True, RED)
-    screen.blit(value, [10, 70])
-    o = pygame.font.SysFont("comicsansms", 18)
-    value = o.render("Сила сопротивления: " + str(roc.L), True, RED)
-    screen.blit(value, [10, 90])
 
+def control(object):
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_2:
+            object.m += 1
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_3:
+            object.m -= 1
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_6:
+            object.Air_force()
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_7:
+            object.no_Air_force()
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_4:
+            object.mt += 1
+    if event.type == pygame.KEYDOWN:
+        if event.key == pygame.K_5:
+            object.mt -= 1   
+repeat = 1
+def draw_Earth():
+    pygame.draw.line(screen, GREEN, (0,552), (850,552), 5)
 pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-D = []
-B = []
-A = []
-for j in range(2,100,3):
-    for i in range(2,100,3):
-        fu = Fu(screen, x = 350 +  i, y = 450 + j)
-        A.append(fu)
-roc = Roc(screen)
-d = False
-while not d:
-    screen.fill(WHITE)
-    roc.draw()
-    start()
-    parametres()
-    for fu in A:
-        fu.draw()
-    pygame.display.update()
-    for event in pygame.event.get():
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_1:
-                finished = False
-                d = True
+while repeat>=0:
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    D = []
+    B = []
+    A = []
+    for j in range(2,100,3):
+        for i in range(2,100,3):
+            fuel = Fuel(screen, x = 350 +  i, y = 450 + j)
+            A.append(fuel)
+    rocket = Rocket(screen)
+    d = False
+    while not d:
+        screen.fill(WHITE)
+        rocket.draw()
+        start()
+        parametres(rocket)
+        draw_Earth()
+        for fuel in A:
+            fuel.draw()
+        pygame.display.update()
+        for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_2:
-                    roc.m += 1
+                if event.key == pygame.K_1:
+                    finished = False
+                    d = True
+                control(rocket)
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_8:
+                        repeat += 1
+                    if event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_9:
+                            repeat -= 1
+    clock = pygame.time.Clock()
+    while not finished:
+        screen.fill(WHITE)
+        rocket.draw()
+        draw_Earth()
+        parametres(rocket)
+        for fuel in A:
+            fuel.draw()
+        pygame.display.update()
+        dt = clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                    finished = True
+            control(rocket)
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_3:
-                    roc.m -= 1
+                if event.key == pygame.K_8:
+                    repeat += 1
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_4:
-                    Air_force()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_5:
-                    no_Air_force()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_6:
-                    roc.mt += 1
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_7:
-                    roc.mt -= 1
-            
-clock = pygame.time.Clock()
-while not finished:
-    screen.fill(WHITE)
-    roc.draw()
-    parametres()
-    for fu in A:
-        fu.draw()
-    pygame.display.update()
-    dt = clock.tick(FPS)
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            finished = True
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_2:
-                roc.m += 1
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_3:
-                roc.m -= 1
-        if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_4:
-                    Air_force()
-        if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_5:
-                    no_Air_force()
-        if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_6:
-                    roc.mt += 1
-        if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_7:
-                    roc.mt -= 1
-            
-    for a in A:
-        a.move()
-        if a.hittest(roc):
-            fu.imp()
-            roc.move()
-            fu.move()
-            roc.imp()
-    roc.move()
-    pygame.display.update()
-    B.append(-roc.vy)
-    D.append(-roc.y+294)
-    C = []
-    for i in range(len(B)):
-        C.append(int(i))
+                if event.key == pygame.K_9:
+                    repeat -= 1
+                
+        for a in A:
+            a.move(rocket)
+            if a.hittest(rocket):
+                fuel.imp()
+                rocket.move()
+                fuel.move(rocket)
+                rocket.imp()
+        rocket.move()
+        pygame.display.update()
+        B.append(-rocket.vy)
+        D.append(-rocket.y+294)
+        C = []
+        for i in range(len(B)):
+            C.append(int(i))
 
-y = B
-x = np.vectorize(lambda i : int(i))(C)
-plt.plot(x, y)
-plt.title("Скорость ракеты")
+    y = B
+    x = np.vectorize(lambda i : int(i))(C)
+    plt.plot(x, y)
+    plt.title("Скорость ракеты")
+    plt.show()
 
-
-plt.show()
-
-t = np.vectorize(lambda i : int(i))(C)
-w = D
-plt.plot(t, w)
-plt.title("Координата ракеты")
-plt.show()
+    t = np.vectorize(lambda i : int(i))(C)
+    w = D
+    plt.plot(t, w)
+    plt.title("Координата ракеты")
+    plt.show()
+    repeat -= 1
+ 
 pygame.quit()
