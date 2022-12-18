@@ -11,34 +11,51 @@ GREEN = 0x7FFF00
 WIDTH = 800
 HEIGHT = 600
 
+
 class Rocket:
     def __init__(self, screen):
         self.screen = screen
-        self.y = 300
+        self.y = 170
         self.h = 250
         self.w = 100
         self.vy = 0
-        self.m = 30
-        self.mt = 35
+        self.m = 34000
+        self.mt = 274000
         self.g = 10
         self.N = 0
         self.A = 0
         self.L = 'OFF'
         self.color = GREY
+        self.scale = 1
+        self.u = 4000
+        self.dm  = 1000
 
     def move(self):
-         self.vy -= - self.g * dt/10000 - self.N/(1-self.N/50)*0.01 + self.A * (self.vy)
-         self.y += self.vy * dt/30
-         if ((self.y + self.h) > 551):
-            self.vy = 0
-            self.y = 300
+        if (self.mt > 0):
+            self.vy = self.vy  - self.u * self.dm / (self.m + self.mt) + self.g *(6378000 + self.y)/(6378000)*dt
+            self.mt -= self.dm
+            self.y -=  self.vy * dt
+        else:
+            self.vy = self.vy + self.g * dt
+            self.y -=  self.vy * dt
+
+    def parashooting(self):
+        pass
+    
+    def Air_force_parashoot(self):
+        rocket.A = 0.2
+        rocket.L = 'ON'
+
+    def draw_parashoot(self):
+        screen.blit(image, [350, self.y*(2-self.scale) - 150*scale])
 
     def imp(self):
-        self.N = 0
+        pass
         
     def draw(self):
-        pygame.draw.rect(self.screen, self.color, pygame.Rect(350, self.y, self.w, self.h))
-        pygame.draw.lines(self.screen, self.color, True, [[350, self.y], [350 + self.w, self.y], [350 + 0.5 * self.w, self.y - 30]], 30)
+        y_s = self.y * self.scale
+        pygame.draw.rect(self.screen, self.color,(350, 600 - y_s  , 80, 120))
+        pygame.draw.lines(self.screen, self.color, True, [[350, 600 - y_s], [350 + 80*self.scale, 600 - y_s], [350 + 40*self.scale , 600 - y_s - (self.scale)*20 ]], 3)
 
     def Air_force(self):
         rocket.A = 0.01
@@ -55,34 +72,17 @@ class Fuel:
         self.y = y
         self.r = 1
         self.vx = 0
-        self.vy = 0
+        self.vy = 4000
         self.g = 10
         self.count = 1089
         self.color = RED
-     
+
     def move(self, object):
-        self.vy =  object.vy + self.g * dt/10000 * (1 + (self.y - object.y -150)/(2*self.r))
-        self.y += self.vy * dt/30
-        self.x += self.vx * dt
-
-        if (self.y-self.r)> (object.y + object.h):
-            self.vy = 1
-            self.y += self.vy * dt + self.g*dt*dt/2000
-            self.vx =  randint(-1,1)
+        self.vy = object.vy + self.vy
+        self.y += self.vy *1
  
-    def draw(self):
-        pygame.draw.circle(self.screen, self.color, (self.x, self.y), self.r)
-
-    def imp(self):
-        rocket.N = 100
-        rocket.mt -= 1
-
-    def hittest(self, obj):
-        dy = self.y
-        dr = self.r
-        x1 = obj.y
-        x2 = obj.h 
-        return((dy-2*dr)<(x1+x2) and (dy+2*dr)>(x1+x2))
+    def draw(self, scale):
+        pygame.draw.circle(self.screen, self.color, (self.x, self.y), 1)
 
 def start():
     u = pygame.font.SysFont("comicsansms", 20)
@@ -95,47 +95,53 @@ def draw_text(text, parametr, position):
     screen.blit(value, [10, position])
 
 def parametres(object):
-    draw_text(text = 'Скорость ракеты:' , parametr = round(-object.vy), position = 10)
-    draw_text(text = 'Координата ракеты: ', parametr = round(-object.y), position = 30)
-    draw_text(text = '(2+ 3-) Масса корпуса ракеты: ', parametr = round(object.m), position = 50)
-    draw_text(text = '(4+ 5-) Масса топлива ракеты: ', parametr = round(object.mt), position = 70)
+    draw_text(text = 'Скорость ракеты(км\с):' , parametr = round(-object.vy/1000), position = 10)
+    draw_text(text = 'Координата ракеты(км): ', parametr = round(object.y/1000), position = 30)
+    draw_text(text = '(2+ 3-) Масса корпуса ракеты(тонн): ', parametr = round(object.m/1000), position = 50)
+    draw_text(text = '(4+ 5-) Масса топлива ракеты(тонн): ', parametr = round(object.mt/1000), position = 70)
     draw_text(text = '(6+ 7-) Сила сопротивления: ', parametr = object.L , position = 90)
     draw_text(text = '(8+ 9-) Повторных пусков:  '  , parametr = repeat, position = 110)
 
 
-def control(object):
+def control(object1):
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_2:
-            object.m += 1
+            object1.m += 1000
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_3:
-            object.m -= 1
+            object1.m -= 1000
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_6:
-            object.Air_force()
+            object1.Air_force()
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_7:
-            object.no_Air_force()
+            object1.no_Air_force()
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_4:
-            object.mt += 1
+            object1.mt += 1000
     if event.type == pygame.KEYDOWN:
         if event.key == pygame.K_5:
-            object.mt -= 1   
+            object1.mt -= 1000
+    
+   
 repeat = 1
 def draw_Earth():
     pygame.draw.line(screen, GREEN, (0,552), (850,552), 5)
 pygame.init()
 while repeat>=0:
+    global scale
+    scale = 1
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     D = []
     B = []
     A = []
-    for j in range(2,100,3):
-        for i in range(2,100,3):
-            fuel = Fuel(screen, x = 350 +  i, y = 450 + j)
-            A.append(fuel)
+    image = pygame.image.load('project\par.png')
+    image = pygame.transform.scale(image, (100*scale, 100*scale))
     rocket = Rocket(screen)
+    for i in range(2,100,3):
+        fuel = Fuel(screen, x = 350 +  i, y = rocket.y + rocket.h)
+        A.append(fuel)
+    
     d = False
     while not d:
         screen.fill(WHITE)
@@ -143,8 +149,12 @@ while repeat>=0:
         start()
         parametres(rocket)
         draw_Earth()
+        for i in range(2,100,3):
+            fuel = Fuel(screen, x = 350 +  i, y = rocket.y + rocket.h)
+        A.append(fuel)
         for fuel in A:
-            fuel.draw()
+            fuel.draw(scale)
+            fuel.move(rocket)
         pygame.display.update()
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
@@ -155,19 +165,30 @@ while repeat>=0:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_8:
                         repeat += 1
-                    if event.type == pygame.KEYDOWN:
-                        if event.key == pygame.K_9:
-                            repeat -= 1
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_9:
+                        repeat -= 1
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_0:
+                        rocket.scale -= 0.1
+                        scale -= 0.1
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_F3:
+                        rocket.scale += 0.1
+                        scale += 0.1
     clock = pygame.time.Clock()
     while not finished:
         screen.fill(WHITE)
         rocket.draw()
         draw_Earth()
         parametres(rocket)
+        for i in range(2,100,3):
+            fuel = Fuel(screen, x = 350 +  i, y = rocket.y + rocket.h)
+        A.append(fuel)
         for fuel in A:
-            fuel.draw()
+            fuel.draw(scale)
         pygame.display.update()
-        dt = clock.tick(FPS)
+        dt = 1
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                     finished = True
@@ -178,18 +199,24 @@ while repeat>=0:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_9:
                     repeat -= 1
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_0:
+                    rocket.scale -= 0.1
+                    scale -= 0.1
+            if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_F3:
+                        rocket.scale += 0.1
+                        scale += 0.1
                 
         for a in A:
             a.move(rocket)
-            if a.hittest(rocket):
-                fuel.imp()
-                rocket.move()
-                fuel.move(rocket)
-                rocket.imp()
+           
+        
         rocket.move()
+        rocket.parashooting()
         pygame.display.update()
         B.append(-rocket.vy)
-        D.append(-rocket.y+294)
+        D.append(+rocket.y+294)
         C = []
         for i in range(len(B)):
             C.append(int(i))
